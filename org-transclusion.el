@@ -1244,14 +1244,23 @@ to LINK if the link is already absolute.
 
 The current buffer is assumed to be the source buffer for the
 transclusion."
-  (when (string-equal "file" (org-element-property :type link))
-    (let ((path (org-element-property :path link)))
+  (when (or
+         (string-equal "file" (org-element-property :type link))
+         (string-equal "attachment" (org-element-property :type link)))
+    (let ((type (org-element-property :type link))
+          (path (org-element-property :path link)))
       (unless (file-name-absolute-p path)
-        (org-element-put-property
-         link :path
-         (expand-file-name
-          path
-          (file-name-directory (buffer-file-name (current-buffer)))))))))
+        (setq link (org-element-put-property
+                    link :path
+                    (if (string-equal "attachment" type)
+                        (org-attach-expand path)
+                      (expand-file-name
+                       path
+                       (file-name-directory (buffer-file-name (current-buffer)))))))
+        (if (string-equal "attachment" type)
+            (setq link (org-element-put-property
+                        link :type "file")))
+        link))))
 
 (defun org-transclusion-content-filter-org-exclude-elements (data)
   "Exclude specific elements from DATA.
